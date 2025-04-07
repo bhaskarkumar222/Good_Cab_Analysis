@@ -88,3 +88,207 @@ ON
     mt.city_id = c.city_id and mt.[month] = ap.start_of_month;
 
 
+
+-- Business Request - 3: City-Level Repeat Passenger Trip Frequency Report
+/*
+Generate a report that shows the percentage distribution of repeat passengers by the
+number of trips they have taken in each city. Calculate the percentage of repeat passengers
+who took 2 trips, 3 trips, and so on, up to 10 trips.
+
+Each column should represent a trip count category, displaying the percentage of repeat
+passengers who fall into that category out of the total repeat passengers for that city.
+
+This report will help identify cities with high repeat trip frequency, which can indicate strong
+customer loyalty or frequent usage patterns.
+
+. Fields: city_name, 2-Trips, 3-Trips, 4-Trips, 5-Trips, 6-Trips, 7-Trips, 8-Trips, 9-Trips,
+10-Trips
+*/
+
+WITH repeating_passenger AS(
+SELECT 
+    city_id,
+    SUM(cast(repeat_passenger_count AS int)) AS repeat_passenger
+FROM 
+    dim_repeat_trip_distribution 
+GROUP BY city_id
+),
+    city_trip_frequency AS(
+SELECT 
+    c.city_name,
+    trip_count,
+    (SUM(cast(repeat_passenger_count AS int))*100/ repeat_passenger) AS repeat_passenger_pct
+FROM 
+    repeating_passenger rp join dim_repeat_trip_distribution rtd
+ON 
+    rp.city_id = rtd.city_id 
+JOIN dim_city c
+ON 
+    rtd.city_id = c.city_id
+GROUP BY 
+    c.city_name,
+    trip_count,
+    repeat_passenger
+    )
+SELECT 
+    city_name, 
+    max(case when trip_count = '2-Trips' then repeat_passenger_pct else 0 end) as Trips_2,
+    max(case when trip_count = '3-Trips' then repeat_passenger_pct else 0 end) as Trips_3,
+    max(case when trip_count = '4-Trips' then repeat_passenger_pct else 0 end) as Trips_4,
+    max(case when trip_count = '5-Trips' then repeat_passenger_pct else 0 end) as Trips_5,
+    max(case when trip_count = '6-Trips' then repeat_passenger_pct else 0 end) as Trips_6,
+    max(case when trip_count = '7-Trips' then repeat_passenger_pct else 0 end) as Trips_7,
+    max(case when trip_count = '8-Trips' then repeat_passenger_pct else 0 end) as Trips_8,
+    max(case when trip_count = '9-Trips' then repeat_passenger_pct else 0 end) as Trips_9,
+    max(case when trip_count = '10-Trips' then repeat_passenger_pct else 0 end) as Trips_10 
+FROM 
+    city_trip_frequency
+    GROUP BY city_name;
+
+
+-- Business Request - 4: Identify Cities with Highest and Lowest Total New Passengers
+/*
+Generate a report that calculates the total new passengers for each city and ranks them
+based on this value. Identify the top 3 cities with the highest number of new passengers as
+well as the bottom 3 cities with the lowest number of new passengers, categorising them as
+"Top 3" or "Bottom 3" accordingly.
+
+Fields
+
+· city_name
+· total_new_passengers
+. city_category ("Top 3" or "Bottom 3")
+*/
+
+WITH rank AS (
+SELECT
+    city_name, 
+    SUM(new_passengers) AS new_passengers ,
+    ROW_number() OVER( ORDER BY SUM(new_passengers) DESC) AS high_rank,
+    ROW_number() OVER( ORDER BY SUM(new_passengers) ASC) AS low_rank
+FROM 
+    fact_passenger_summary ps JOIN dim_city c
+ON 
+    ps.city_id = c.city_id
+GROUP BY 
+    city_name
+)
+SELECT 
+    city_name,
+    new_passengers,
+    CASE WHEN high_rank <=3 THEN 'TOP_3'
+         WHEN low_rank <=3 THEN 'BOTTOM_3'
+    END AS  city_category
+FROM 
+    rank
+WHERE 
+    high_rank <= 3 OR low_rank <= 3
+ORDER BY new_passengers DESC
+
+-- Business Request - 5: Identify Month with Highest Revenue for Each City
+/*
+Generate a report that identifies the month with the highest revenue for each city. For each
+city, display the month_name, the revenue amount for that month, and the percentage
+contribution of that month's revenue to the city's total revenue.
+
+Fields
+
+· city_name
+. highest_revenue_month
+· revenue
+· percentage_contribution (%)
+*/
+WITH monthly_revenue AS(
+SELECT
+    FORMAT(CAST(tf.[date] AS date), 'MMM') AS month_name,
+    city_name,
+    SUM(fare_amount) AS Monthly_revenue 
+FROM 
+    fact_trips tf JOIN dim_city c
+ON 
+    tf.city_id = c.city_id
+GROUP BY 
+    city_name,  FORMAT(CAST(tf.[date] AS date), 'MMM')
+),
+    revenue_by_city AS (
+SELECT 
+    city_name, 
+    SUM(Monthly_revenue) AS Total_revenue 
+FROM 
+    monthly_revenue
+GROUP BY
+    city_name
+),
+    pct_contribution AS (
+SELECT 
+    rc.city_name, 
+    month_name,
+    rc.Total_revenue,
+    ROUND(CAST((monthly_revenue * 100.0) / total_revenue AS float), 2) AS percentage_contribution,
+    DENSE_RANK() OVER(partition BY rc.city_name ORDER BY Monthly_revenue DESC) AS rnk_num  
+FROM 
+    revenue_by_city rc JOIN monthly_revenue mr 
+ON 
+    rc.city_name = mr.city_name
+    )
+SELECT  
+    city_name,
+    month_name,
+    Total_revenue,
+    percentage_contribution
+FROM pct_contribution
+WHERE rnk_num = 1;
+
+
+
+
+
+WITH cte AS (
+    SELECT
+    FORMAT(CAST(tf.[date] AS date), 'MMM') AS month_name,
+    city_name,
+    SUM(fare_amount) AS Monthly_revenue 
+FROM 
+    fact_trips tf JOIN dim_city c
+ON 
+    tf.city_id = c.city_id
+GROUP BY 
+    city_name,  FORMAT(CAST(tf.[date] AS date), 'MMM')
+),
+    cte2 AS(
+SELECT *, 
+    DENSE_RANK() OVER(partition BY city_name ORDER BY Monthly_revenue DESC) AS rnk_num
+FROM 
+    cte 
+)
+SELECT 
+    city_name, 
+    month_name, 
+    Monthly_revenue 
+FROM cte2
+WHERE rnk_num = 1
+
+
+-- Business Request - 6: Repeat Passenger Rate Analysis
+/*
+Generate a report that calculates two metrics:
+
+1. Monthly Repeat Passenger Rate: Calculate the repeat passenger rate for each city
+and month by comparing the number of repeat passengers to the total passengers.
+2. City-wide Repeat Passenger Rate: Calculate the overall repeat passenger rate for
+each city, considering all passengers across months.
+
+These metrics will provide insights into monthly repeat trends as well as the overall repeat
+behaviour for each city.
+
+Fields:
+
+city_name
+· month
+· total_passengers
+· repeat_passengers
+. monthly_repeat_passenger_rate (%): Repeat passenger rate at the city and
+month level
+· city_repeat_passenger_rate (%): Overall repeat passenger rate for each city,
+aggregated across months
+*/
