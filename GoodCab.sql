@@ -54,10 +54,6 @@ Fields:
 */
 
 
-SELECT * FROM dim_date;
-SELECT * FROM monthly_target_trips;
-
-
 with actual_price AS (
 SELECT 
     ft.city_id AS city_id,
