@@ -199,37 +199,37 @@ Fields
 · percentage_contribution (%)
 */
 WITH monthly_revenue AS(
-SELECT
-    FORMAT(CAST(tf.[date] AS date), 'MMM') AS month_name,
-    city_name,
-    SUM(fare_amount) AS Monthly_revenue 
-FROM 
-    fact_trips tf JOIN dim_city c
-ON 
-    tf.city_id = c.city_id
-GROUP BY 
-    city_name,  FORMAT(CAST(tf.[date] AS date), 'MMM')
+    SELECT
+        FORMAT(CAST(tf.[date] AS date), 'MMM') AS month_name,
+        city_name,
+        SUM(fare_amount) AS Monthly_revenue 
+    FROM 
+        fact_trips tf JOIN dim_city c
+    ON 
+        tf.city_id = c.city_id
+    GROUP BY 
+        city_name,  FORMAT(CAST(tf.[date] AS date), 'MMM')
 ),
     revenue_by_city AS (
-SELECT 
-    city_name, 
-    SUM(Monthly_revenue) AS Total_revenue 
-FROM 
-    monthly_revenue
-GROUP BY
-    city_name
-),
-    pct_contribution AS (
-SELECT 
-    rc.city_name, 
-    month_name,
-    rc.Total_revenue,
-    ROUND(CAST((monthly_revenue * 100.0) / total_revenue AS float), 2) AS percentage_contribution,
-    DENSE_RANK() OVER(partition BY rc.city_name ORDER BY Monthly_revenue DESC) AS rnk_num  
-FROM 
-    revenue_by_city rc JOIN monthly_revenue mr 
-ON 
-    rc.city_name = mr.city_name
+        SELECT 
+            city_name, 
+            SUM(Monthly_revenue) AS Total_revenue 
+        FROM 
+            monthly_revenue
+        GROUP BY
+            city_name
+        ),
+            pct_contribution AS (
+        SELECT 
+            rc.city_name, 
+            month_name,
+            rc.Total_revenue,
+            ROUND(CAST((monthly_revenue * 100.0) / total_revenue AS float), 2) AS percentage_contribution,
+            DENSE_RANK() OVER(partition BY rc.city_name ORDER BY Monthly_revenue DESC) AS rnk_num  
+        FROM 
+            revenue_by_city rc JOIN monthly_revenue mr 
+        ON 
+            rc.city_name = mr.city_name
     )
 SELECT  
     city_name,
@@ -238,35 +238,6 @@ SELECT
     percentage_contribution
 FROM pct_contribution
 WHERE rnk_num = 1;
-
-
-
-
-
-WITH cte AS (
-    SELECT
-    FORMAT(CAST(tf.[date] AS date), 'MMM') AS month_name,
-    city_name,
-    SUM(fare_amount) AS Monthly_revenue 
-FROM 
-    fact_trips tf JOIN dim_city c
-ON 
-    tf.city_id = c.city_id
-GROUP BY 
-    city_name,  FORMAT(CAST(tf.[date] AS date), 'MMM')
-),
-    cte2 AS(
-SELECT *, 
-    DENSE_RANK() OVER(partition BY city_name ORDER BY Monthly_revenue DESC) AS rnk_num
-FROM 
-    cte 
-)
-SELECT 
-    city_name, 
-    month_name, 
-    Monthly_revenue 
-FROM cte2
-WHERE rnk_num = 1
 
 
 -- Business Request - 6: Repeat Passenger Rate Analysis
