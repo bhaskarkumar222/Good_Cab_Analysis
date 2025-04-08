@@ -282,7 +282,6 @@ These metrics will provide insights into monthly repeat trends as well as the ov
 behaviour for each city.
 
 Fields:
-
 city_name
 · month
 · total_passengers
@@ -292,3 +291,37 @@ month level
 · city_repeat_passenger_rate (%): Overall repeat passenger rate for each city,
 aggregated across months
 */
+With monthly_repeat_rate AS (
+SELECT 
+    city_id,
+    MONTH([month]) AS month_num,
+    FORMAT(CAST([month] AS date), 'MMM') AS month_name,
+    SUM(repeat_passengers) AS repeat_passenger,
+    SUM(total_passengers) AS  total_passengers,
+    SUM(repeat_passengers)*100/ SUM(total_passengers) AS repeat_rate
+FROM 
+    fact_passenger_summary
+GROUP BY 
+    city_id,
+    MONTH([month]),
+    FORMAT(CAST([month] AS date), 'MMM')
+), 
+    overall_repert_rate AS (
+SELECT 
+    city_id,
+    SUM(repeat_passengers)*100/ SUM(total_passengers) AS overall_repert_rate
+FROM fact_passenger_summary
+GROUP BY city_id
+    )
+SELECT
+    c.city_name,
+    mrr.month_name,
+    mrr.repeat_passenger,
+    mrr.total_passengers,
+    mrr.repeat_rate,
+    orr.overall_repert_rate
+FROM overall_repert_rate orr JOIN monthly_repeat_rate mrr 
+ON orr.city_id = mrr.city_id
+JOIN dim_city c 
+ON c.city_id = mrr.city_id
+ORDER BY c.city_name;
