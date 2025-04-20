@@ -23,6 +23,7 @@ By evaluating these metrics the project aims to:
 - Azure Storage
 - Azure Database
 - Power BI
+- <a href="https://app.powerbi.com/view?r=eyJrIjoiZTA1NTI5MDAtNzFhOS00OWY5LTg5NDgtZmMzYmJhMTUxYTBlIiwidCI6ImRmODY3OWNkLWE4MGUtNDVkOC05OWFjLWM4M2VkN2ZmOTVhMCJ9">View Dashboard</a>
 
 ## **Situation**
 GoodCabs, a mobility startup, wanted to gain a deeper understanding of its operational performance to support growth in tier-2 cities and reach 2024 market targets. They had large datasets stored in the cloud with limited visibility into KPIs.
@@ -35,6 +36,15 @@ Design and implement a scalable **Azure-based data pipeline** to process trip da
 - Created linked services, datasets, and pipelines to ensure secure, efficient data flow.
 - Wrote SQL queries to answer **ad-hoc business questions**.
 - Designed an **interactive Power BI dashboard** showcasing KPIs such as trip volume, passenger retention, regional distribution, and satisfaction analysis.
+
+## Revenue Dashboard
+![image alt](https://github.com/bhaskarkumar222/Good_Cab_Analysis/blob/964268730485ad6a5201e8f0e263e854db2d0332/Revenue%20Dashboard.png)
+
+## City Dashboard
+![image_alt](https://github.com/bhaskarkumar222/Good_Cab_Analysis/blob/964268730485ad6a5201e8f0e263e854db2d0332/City%20Dashboard.png)
+
+## Passenger Dashboard
+![image_alt](https://github.com/bhaskarkumar222/Good_Cab_Analysis/blob/964268730485ad6a5201e8f0e263e854db2d0332/Passenger%20Dashboard.png)
 
 ## Key Insides
 - **Jaipur:** Contributes the highest to Trips (18%) and Revenue (₹37.2M, 34%) but relies heavily on New Passengers (80%).
